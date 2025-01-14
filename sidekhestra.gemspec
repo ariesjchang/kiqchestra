@@ -9,7 +9,8 @@ Gem::Specification.new do |spec|
   spec.email = ["edwardjhchang@gmail.com"]
 
   spec.summary = "Job Workflow Orchestration Layer for Sidekiq"
-  spec.description = "Sidekhestra enhances the power of Sidekiq by introducing a job orchestration framework designed to handle complex workflows with ease and efficiency."
+  spec.description = "Sidekhestra enhances the power of Sidekiq by introducing a job orchestration framework " \
+                     "designed to handle complex workflows with ease and efficiency."
   spec.homepage = "https://github.com/ariesjchang/sidekhestra."
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.0.0"

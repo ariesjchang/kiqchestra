@@ -4,6 +4,8 @@ require_relative "sidekhestra/version"
 require "sidekiq"
 
 module Sidekhestra
+  # Sidekhestra::Workflow
+  # This class defines the workflow for orchestration of Sidekiq jobs.
   class Workflow
     attr_reader :steps, :progress
 
