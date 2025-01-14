@@ -3,25 +3,40 @@ name: Ruby
 on:
   push:
     branches:
-      - master
-
+      - main
   pull_request:
+    branches:
+      - main
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    name: Ruby ${{ matrix.ruby }}
+    name: Run Tests
     strategy:
       matrix:
-        ruby:
-          - '3.3.3'
+        ruby-version:
+          - '3.2'
+          - '3.3'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+      - run: bundle install
+      - run: bundle exec rspec
+
+  build:
+    runs-on: ubuntu-latest
+    name: Build Gem
 
     steps:
     - uses: actions/checkout@v4
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: ${{ matrix.ruby }}
+        ruby-version: '3.2'
         bundler-cache: true
-    - name: Run the default task
+    - name: Run Rake Task
       run: bundle exec rake

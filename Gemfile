@@ -11,4 +11,4 @@ gem "rspec", "~> 3.0"
 
 gem "rubocop", "~> 1.21"
 
-gem 'sidekiq', '~> 6.5.5'
+gem "sidekiq", "~> 6.5.5"
