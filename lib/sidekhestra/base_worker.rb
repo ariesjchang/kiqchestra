@@ -55,7 +55,7 @@ module Sidekhestra
       log_info "Job #{job_name} completed for workflow #{@workflow_id}"
     end
 
-    # Fetch the workflow instance
+    # Fetch the workflow instance lazily, using pre-fetched dependencies.
     def workflow
       @workflow ||= Workflow.new @workflow_id, fetch_dependencies
     end
@@ -65,9 +65,14 @@ module Sidekhestra
       self.class.name.demodulize.underscore.to_sym
     end
 
-    # Fetch the job's dependencies from the cache
+    # Fetch the job's dependencies and cache them
     def fetch_dependencies
-      JSON.parse(Rails.cache.read(workflow.workflow_dependencies_key) || "{}")
+      @fetch_dependencies ||= JSON.parse(Rails.cache.read(workflow_dependencies_key) || "{}")
+    end
+
+    # Returns the key for storing workflow dependencies in Redis.
+    def workflow_dependencies_key
+      "workflow:#{@workflow_id}:dependencies"
     end
 
     # Logs an info-level message
