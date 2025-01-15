@@ -2,7 +2,7 @@
 
 require "sidekiq"
 
-module Sidekhestra
+module Kiqchestra
   # BaseWorker provides a standard interface for all workflow jobs.
   # It includes the necessary callback mechanism to notify the Workflow
   # once a job has completed and trigger any follow-up jobs based on the dependencies.

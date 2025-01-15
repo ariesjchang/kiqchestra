@@ -1,25 +1,25 @@
 # frozen_string_literal: true
 
-require_relative "lib/sidekhestra/version"
+require_relative "lib/kiqchestra/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "sidekhestra"
-  spec.version = Sidekhestra::VERSION
+  spec.name = "kiqchestra"
+  spec.version = Kiqchestra::VERSION
   spec.authors = ["aries"]
   spec.email = ["edwardjhchang@gmail.com"]
 
   spec.summary = "Job Workflow Orchestration Layer for Sidekiq"
-  spec.description = "Sidekhestra enhances the power of Sidekiq by introducing a job orchestration framework " \
+  spec.description = "Kiqchestra enhances the power of Sidekiq by introducing a job orchestration framework " \
                      "designed to handle complex workflows with ease and efficiency."
-  spec.homepage = "https://github.com/ariesjchang/sidekhestra."
+  spec.homepage = "https://github.com/ariesjchang/kiqchestra."
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.0.0"
 
   spec.metadata["allowed_push_host"] = "TODO: Set to your gem server 'https://example.com'"
 
-  spec.metadata["homepage_uri"] = "https://github.com/ariesjchang/sidekhestra"
-  spec.metadata["source_code_uri"] = "https://github.com/ariesjchang/sidekhestra"
-  spec.metadata["changelog_uri"] = "https://github.com/ariesjchang/sidekhestra/blob/main/CHANGELOG.md"
+  spec.metadata["homepage_uri"] = "https://github.com/ariesjchang/kiqchestra"
+  spec.metadata["source_code_uri"] = "https://github.com/ariesjchang/kiqchestra"
+  spec.metadata["changelog_uri"] = "https://github.com/ariesjchang/kiqchestra/blob/main/CHANGELOG.md"
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.

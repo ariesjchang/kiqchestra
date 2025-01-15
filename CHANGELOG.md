@@ -1,4 +1,4 @@
 # Changelog
 
 ## [Unreleased]
-- Initial release of Sidekhestra.
+- Initial release of Kiqchestra.

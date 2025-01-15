@@ -2,8 +2,8 @@
 
 require "sidekiq"
 
-module Sidekhestra
-  # Sidekhestra::Workflow
+module Kiqchestra
+  # Kiqchestra::Workflow
   # is class defines the workflow for orchestration of Sidekiq jobs.
   class Workflow
     # Initializes the workflow with dependencies and optional logger.

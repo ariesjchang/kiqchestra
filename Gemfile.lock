@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    sidekhestra (0.1.0)
+    kiqchestra (0.1.0)
       sidekiq (~> 6.5.5)
 
 GEM
@@ -61,10 +61,10 @@ PLATFORMS
   x86_64-darwin-23
 
 DEPENDENCIES
+  kiqchestra!
   rake (~> 13.0)
   rspec (~> 3.0)
   rubocop (~> 1.21)
-  sidekhestra!
   sidekiq (~> 6.5.5)
 
 BUNDLED WITH
