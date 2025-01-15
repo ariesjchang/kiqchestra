@@ -2,6 +2,7 @@ PATH
   remote: .
   specs:
     sidekhestra (0.1.0)
+      sidekiq (~> 6.5.5)
 
 GEM
   remote: https://rubygems.org/
