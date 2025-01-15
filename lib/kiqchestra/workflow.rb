@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "sidekiq"
+require "redis"
 
 module Kiqchestra
   # Kiqchestra::Workflow
@@ -26,6 +27,17 @@ module Kiqchestra
       start_initial_jobs
     end
 
+    # Handles the completion of a job and triggers the next jobs if dependencies are met.
+    #
+    # @param job [String] The completed job name
+    def job_completed(job)
+      update_progress job, "completed"
+      log_info "Job #{job} completed for workflow #{@workflow_id}"
+
+      trigger_next_jobs job
+      check_workflow_completion
+    end
+
     private
 
     # Validates the structure of the dependencies hash.
@@ -49,8 +61,8 @@ module Kiqchestra
 
     # Caches the workflow dependencies in Redis.
     def cache_dependencies
-      Rails.cache.write workflow_dependencies_key, @dependencies.to_json
-      Rails.cache.write workflow_progress_key, {}.to_json # Initialize progress as an empty hash
+      RedisStore.connector.set workflow_dependencies_key, @dependencies.to_json
+      RedisStore.connector.set workflow_progress_key, {}.to_json # Initialize progress as an empty hash
     end
 
     # Starts jobs without any dependencies.
@@ -97,17 +109,6 @@ module Kiqchestra
     # @return [Hash] The current progress of the workflow
     def read_progress
       JSON.parse(Rails.cache.read(workflow_progress_key) || "{}")
-    end
-
-    # Handles the completion of a job and triggers the next jobs if dependencies are met.
-    #
-    # @param job [String] The completed job name
-    def job_completed(job)
-      update_progress job, "completed"
-      log_info "Job #{job} completed for workflow #{@workflow_id}"
-
-      trigger_next_jobs job
-      check_workflow_completion
     end
 
     # Checks if the workflow is complete (all jobs are completed) and logs the workflow's end.
