@@ -1,6 +1,15 @@
 AllCops:
   TargetRubyVersion: 3.0
 
+Layout/LineLength:
+  Exclude:
+    - Gemfile
+
+Metrics/BlockLength:
+  Exclude:
+    - kiqchestra.gemspec
+    - spec/**/*
+
 Style/StringLiterals:
   EnforcedStyle: double_quotes
 
