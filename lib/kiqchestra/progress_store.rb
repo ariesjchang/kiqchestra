@@ -10,19 +10,8 @@ module Kiqchestra
   # between file-based, Redis-based, or any other storage system.
   #
   # Methods:
-  # - `read_progress`: Abstract method to read progress from the store.
-  # - `write_progress(progress)`: Abstract method to write progress to the store.
-  #
-  # Example Usage:
-  #   class MyStore < Kiqchestra::ProgressStore
-  #     def read_progress
-  #       # Custom implementation
-  #     end
-  #
-  #     def write_progress(progress)
-  #       # Custom implementation
-  #     end
-  #   end
+  # - `read_progress(workflow_id)`: Reads cached progress for a specific workflow.
+  # - `write_progress(workflow_id, progress)`: Caches the progress for a specific workflow.
   class ProgressStore
     # Ensures subclasses properly implement required methods.
     def initialize(*_args)

@@ -67,7 +67,7 @@ module Kiqchestra
 
     # Fetch the job's dependencies and cache them
     def fetch_dependencies
-      @fetch_dependencies ||= JSON.parse(Rails.cache.read(workflow_dependencies_key) || "{}")
+      @fetch_dependencies ||= Kiqchestra.config.dependencies_store.read_dependencies @workflow_id
     end
 
     # Returns the key for storing workflow dependencies in Redis.
