@@ -26,12 +26,12 @@ module Kiqchestra
 
       begin
         # Delegate the actual job work to the subclass's perform method
-        perform_job(*@args)
+        perform_job *@args
 
         # Call on_complete callback when the job is finished
         on_complete
       rescue StandardError => e
-        log_error "Job #{job_name} failed: #{e.message}"
+        log_error "#{job_name} failed: #{e.message}"
 
         # Re-raise to let Sidekiq handle retries
         raise e
@@ -52,7 +52,7 @@ module Kiqchestra
     # It updates job progress and triggers the next jobs.
     def on_complete
       workflow.job_completed job_name
-      log_info "Job #{job_name} completed for workflow #{@workflow_id}"
+      log_info "kiqchestra: #{job_name} completed for workflow #{@workflow_id}"
     end
 
     # Fetch the workflow instance lazily, using pre-fetched dependencies.
@@ -62,7 +62,7 @@ module Kiqchestra
 
     # Extract job name from the class
     def job_name
-      self.class.name.demodulize.underscore.to_sym
+      self.class.name.demodulize.underscore.to_s
     end
 
     # Fetch the job's dependencies and cache them
@@ -77,12 +77,12 @@ module Kiqchestra
 
     # Logs an info-level message
     def log_info(message)
-      Sidekiq.logger.info message
+      Sidekiq.logger.info "kiqchestra: #{message}"
     end
 
     # Logs an error-level message
     def log_error(message)
-      Sidekiq.logger.error message
+      Sidekiq.logger.error "kiqchestra #{message}"
     end
   end
 end

@@ -4,8 +4,9 @@ require "sidekiq"
 require "redis"
 
 module Kiqchestra
-  # Kiqchestra::Workflow
-  # is class defines the workflow for orchestration of Sidekiq jobs.
+  # The Workflow class provides functionality for orchestrating
+  # Sidekiq-based job workflows. It manages task dependencies
+  # and tracks their completion status.
   class Workflow
     # Initializes the workflow with dependencies and optional logger.
     #
@@ -16,10 +17,11 @@ module Kiqchestra
       @workflow_id = workflow_id
       @dependencies = dependencies
       @logger = logger
+      @dependency_store = Kiqchestra.config.dependency_store
       @progress_store = Kiqchestra.config.progress_store
 
       validate_dependencies!
-      cache_dependencies
+      save_dependencies dependencies
     end
 
     # Starts the workflow execution.
@@ -30,10 +32,10 @@ module Kiqchestra
 
     # Handles the completion of a job and triggers the next jobs if dependencies are met.
     #
-    # @param job [String] The completed job name
+    # @param job [String] The completed job name (ex. "example_job")
     def job_completed(job)
       update_progress job, "completed"
-      log_info "Job #{job} completed for workflow #{@workflow_id}"
+      log_info "#{job} completed for workflow #{@workflow_id}"
 
       trigger_next_jobs job
       check_workflow_completion
@@ -60,10 +62,12 @@ module Kiqchestra
       "workflow:#{@workflow_id}:progress"
     end
 
-    # Caches the workflow dependencies in Redis.
-    def cache_dependencies
-      ::RedisStore.connector.set workflow_dependencies_key, @dependencies.to_json
-      ::RedisStore.connector.set workflow_progress_key, {}.to_json # Initialize progress as an empty hash
+    # Saves the task dependencies using the configured dependency store.
+    # 
+    # @param [Hash] dependencies A hash where keys are task names and values are arrays of dependencies.
+    # @example save_dependencies(job1: [:job2, :job3], job2: [])
+    def save_dependencies(dependencies)
+      @dependency_store.write_dependencies dependencies
     end
 
     # Starts jobs without any dependencies.
@@ -82,8 +86,10 @@ module Kiqchestra
     end
 
     # Enqueues a Sidekiq job for execution and saves the job's status as "in_progress".
+    # 
+    # @param job [String] job name in snake_case
     def enqueue_job(job)
-      worker_class = Object.const_get "#{job.capitalize}Worker"
+      worker_class = Object.const_get "#{job.to_s.camelize}"
       worker_class.perform_async @workflow_id
       update_progress job, "in_progress"
     rescue NameError
@@ -92,12 +98,12 @@ module Kiqchestra
 
     # Logs a message if a logger is configured.
     def log_info(message)
-      @logger&.info message
+      @logger&.info "kiqchestra: #{message}"
     end
 
     # Updates the workflow progress for a job.
     #
-    # @param job [String] job name
+    # @param job [String] job name in snake_case
     # @param status [String] job status ("in_progress", "completed")
     def update_progress(job, status)
       progress = read_progress

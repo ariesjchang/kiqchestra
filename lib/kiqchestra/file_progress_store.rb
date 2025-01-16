@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "json"
+require "kiqchestra/progress_store"
 
 module Kiqchestra
   # The FileProgressStore class is a default implementation of the ProgressStore
@@ -24,7 +25,7 @@ module Kiqchestra
   #   store.write_progress({ job1: "complete" })
   #   progress = store.read_progress
   class FileProgressStore < ProgressStore
-    def initialize(file_path = "workflow_progress.json")
+    def initialize(file_path = "tmp/kiqchestra/workflow_progress.json")
       super
       @file_path = file_path
     end

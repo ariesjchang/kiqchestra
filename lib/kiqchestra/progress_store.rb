@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Kiqchestra
-  # The ProgressStore class serves as a base interface for implementing custom
+  # The ProgressStore class serves as an abstract base class for implementing custom
   # storage mechanisms for workflow progress in Kiqchestra. It defines two
   # abstract methods (`read_progress` and `write_progress`) that must be implemented
   # by subclasses.
@@ -24,6 +24,11 @@ module Kiqchestra
   #     end
   #   end
   class ProgressStore
+    # Ensures subclasses properly implement required methods.
+    def initialize(*_args)
+      # No initialization logic here
+    end
+
     def read_progress
       raise NotImplementedError, "Subclasses must implement this method"
     end
