@@ -16,6 +16,7 @@ module Kiqchestra
       @workflow_id = workflow_id
       @dependencies = dependencies
       @logger = logger
+      @progress_store = Kiqchestra.config.progress_store
 
       validate_dependencies!
       cache_dependencies
@@ -61,8 +62,8 @@ module Kiqchestra
 
     # Caches the workflow dependencies in Redis.
     def cache_dependencies
-      RedisStore.connector.set workflow_dependencies_key, @dependencies.to_json
-      RedisStore.connector.set workflow_progress_key, {}.to_json # Initialize progress as an empty hash
+      ::RedisStore.connector.set workflow_dependencies_key, @dependencies.to_json
+      ::RedisStore.connector.set workflow_progress_key, {}.to_json # Initialize progress as an empty hash
     end
 
     # Starts jobs without any dependencies.
@@ -101,14 +102,14 @@ module Kiqchestra
     def update_progress(job, status)
       progress = read_progress
       progress[job] = status
-      Rails.cache.write workflow_progress_key, progress.to_json
+      @progress_store.write_progress progress
     end
 
     # Reads the current workflow progress from Redis.
     #
     # @return [Hash] The current progress of the workflow
     def read_progress
-      JSON.parse(Rails.cache.read(workflow_progress_key) || "{}")
+      @progress_store.read_progress
     end
 
     # Checks if the workflow is complete (all jobs are completed) and logs the workflow's end.

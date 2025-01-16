@@ -10,4 +10,13 @@ require_relative "kiqchestra/base_worker"
 # It simplifies the process of managing complex job dependencies, enabling developers
 # to focus on business logic rather than the intricacies of dependency management.
 module Kiqchestra
+  class << self
+    def configure
+      yield config
+    end
+  end
+
+  def config
+    @config ||= Config.new
+  end
 end
