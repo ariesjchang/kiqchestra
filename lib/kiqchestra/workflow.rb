@@ -86,11 +86,11 @@ module Kiqchestra
     # 
     # @param job [String] job name in snake_case
     def enqueue_job(job)
-      worker_class = Object.const_get "#{job.to_s.camelize}"
-      worker_class.perform_async @workflow_id
+      job_class = Object.const_get "#{job.to_s.camelize}"
+      job_class.perform_async @workflow_id
       update_progress job, "in_progress"
     rescue NameError
-      raise "Worker class for job '#{job}' not defined"
+      raise "Class for job '#{job}' not defined"
     end
 
     # Logs a message if a logger is configured.

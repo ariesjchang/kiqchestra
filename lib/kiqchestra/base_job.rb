@@ -3,7 +3,7 @@
 require "sidekiq"
 
 module Kiqchestra
-  # BaseWorker provides a standard interface for all workflow jobs.
+  # BaseJob provides a standard interface for all workflow jobs.
   # It includes the necessary callback mechanism to notify the Workflow
   # once a job has completed and trigger any follow-up jobs based on the dependencies.
   #
@@ -11,7 +11,7 @@ module Kiqchestra
   # the specific logic for the job. This method will be automatically
   # invoked as part of the job execution flow, and callbacks like `on_complete`
   # will be triggered when the job finishes.
-  class BaseWorker
+  class BaseJob
     include Sidekiq::Worker
 
     # Perform the job and trigger workflow callbacks on completion.
@@ -39,7 +39,7 @@ module Kiqchestra
     end
 
     # Subclasses should define the actual job logic here.
-    # This is called by the `perform` method of BaseWorker.
+    # This is called by the `perform` method of BaseJob.
     #
     # @param args [Array] Arguments passed to the job
     def perform_job(*args)

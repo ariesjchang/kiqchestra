@@ -3,7 +3,7 @@
 require "sidekiq"
 require_relative "kiqchestra/version"
 require_relative "kiqchestra/workflow"
-require_relative "kiqchestra/base_worker"
+require_relative "kiqchestra/base_job"
 require_relative "kiqchestra/config"
 
 # Kiqchestra is a Sidekiq-based job orchestration framework designed for
