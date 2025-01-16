@@ -22,7 +22,7 @@ module Kiqchestra
       @workflow_id = workflow_id
       @args = args
 
-      log_info "Starting job in workflow #{@workflow_id}: #{self.class.name}"
+      log_info "Starting job #{job_name} in workflow #{@workflow_id}"
 
       begin
         # Delegate the actual job work to the subclass's perform method
@@ -52,7 +52,7 @@ module Kiqchestra
     # It updates job progress and triggers the next jobs.
     def on_complete
       workflow.job_completed job_name
-      log_info "kiqchestra: #{job_name} completed for workflow #{@workflow_id}"
+      log_info "#{job_name} completed for workflow #{@workflow_id}"
     end
 
     # Fetch the workflow instance lazily, using pre-fetched dependencies.
