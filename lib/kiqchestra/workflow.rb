@@ -29,7 +29,7 @@ module Kiqchestra
 
     # Starts the workflow execution.
     def execute
-      progress = read_progress
+      read_progress
       @metadata.each do |job, job_data|
         process_job job, job_data
       end
@@ -139,6 +139,7 @@ module Kiqchestra
     # @param args [Array] Arguments to pass to the job's perform method (default: empty array).
     def enqueue_job(job, args = [])
       return if job_already_processed? job
+
       update_progress job, "in_progress"
 
       job_class_name = job.to_s.split("_").map(&:capitalize).join

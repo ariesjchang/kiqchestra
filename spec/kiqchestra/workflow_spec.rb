@@ -187,14 +187,30 @@ RSpec.describe Kiqchestra::Workflow do
   end
 
   describe "#ready_to_execute?" do
-    it "returns true when all dependencies are complete" do
-      progress = { "a_job" => "complete", "b_job" => "complete" }
-      expect(workflow.send(:ready_to_execute?, %i[a_job b_job], progress)).to be true
+    context "when AJob, BJob are complete" do
+      before do
+        store.write_progress(workflow_id, {
+                               "a_job" => "complete",
+                               "b_job" => "complete"
+                             })
+      end
+
+      it "returns true when all dependencies are complete" do
+        expect(workflow.send(:ready_to_execute?, %i[a_job b_job])).to be true
+      end
     end
 
-    it "returns false when any dependency is not completed" do
-      progress = { "a_job" => "complete", "b_job" => "in_progress" }
-      expect(workflow.send(:ready_to_execute?, %i[a_job b_job], progress)).to be false
+    context "when AJob is complete and BJob is in progress" do
+      before do
+        store.write_progress(workflow_id, {
+                               "a_job" => "complete",
+                               "b_job" => "in_progress"
+                             })
+      end
+
+      it "returns false when any dependency is not completed" do
+        expect(workflow.send(:ready_to_execute?, %i[a_job b_job])).to be false
+      end
     end
   end
 
@@ -217,9 +233,8 @@ RSpec.describe Kiqchestra::Workflow do
     context "when not all jobs are complete" do
       before do
         store.write_progress(workflow_id, {
-                               "job_a" => "complete",
-                               "job_b" => "in_progress",
-                               "job_c" => "not_started"
+                               "a_job" => "complete",
+                               "b_job" => "in_progress"
                              })
       end
 

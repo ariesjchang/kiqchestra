@@ -27,7 +27,7 @@ module Kiqchestra
 
       begin
         # Delegate the actual job work to the subclass's perform method
-        perform_job *@args
+        perform_job(*@args)
 
         workflow.handle_completed_job job_name
       rescue StandardError => e
@@ -54,18 +54,10 @@ module Kiqchestra
     end
 
     # Extract job name from the class
-    # .split('::').last : equivalent to Rails's demodulize
+    # Equivalent to Rails's .demodulize.underscore
     def job_name
-      self.class.name.split("::").last.underscore
-    end
-
-    # Same as Rails's underscore
-    def underscore
-      self.gsub(/::/, '/').
-      gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
-      gsub(/([a-z\d])([A-Z])/,'\1_\2').
-      tr("-", "_").
-      downcase
+      self.class.name.split("::").last.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+          .gsub(/([a-z\d])([A-Z])/, '\1_\2').tr("-", "_").downcase
     end
 
     # Fetch the cached workflow data from redis
