@@ -1,34 +1,28 @@
 # frozen_string_literal: true
 
-require "kiqchestra/redis_dependencies_store"
-require "kiqchestra/redis_progress_store"
+require "kiqchestra/default_workflow_store"
 
 module Kiqchestra
   # The Config class provides a configuration object for Kiqchestra, allowing users
   # to customize various aspects of the library's behavior.
   #
-  # By default, it initializes with a RedisDependenciesStore and a RedisProgressStore
-  # instance for storing workflow progress. Users can override this with a
-  # custom store by setting the `dependencies_store` or `progress_store` attribute.
+  # By default, it initializes with a DefaultWorkflowStore instance for managing
+  # workflow storage (dependencies, progress, etc.). Users can override this with
+  # a custom store by setting the `workflow_store` attribute.
   #
   # Attributes:
-  # - `dependencies_store`: The object responsible for storing workflow dependencies.
-  #   Defaults to an instance of `RedisDependenciesStore`.
-  # - `progress_store`: The object responsible for storing workflow progress.
-  #   Defaults to an instance of `RedisProgressStore`.
+  # - `workflow_store`: The object responsible for storing workflow-related data.
+  #   Defaults to an instance of `DefaultWorkflowStore`.
   #
   # Example Usage:
   #   Kiqchestra.configure do |config|
-  #     config.dependencies_store = MyCustomDependenciesStore.new
-  #     config.progress_store = MyCustomProgressStore.new
-  #     config.redis_cache_duration = 604800
+  #     config.store = MyCustomWorkflowStore.new
   #   end
   class Config
-    attr_accessor :dependencies_store, :progress_store
+    attr_accessor :store
 
     def initialize
-      @dependencies_store = RedisDependenciesStore.new
-      @progress_store = RedisProgressStore.new
+      @store = DefaultWorkflowStore.new
     end
   end
 end

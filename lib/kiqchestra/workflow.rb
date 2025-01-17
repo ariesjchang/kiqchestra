@@ -12,13 +12,10 @@ module Kiqchestra
     #
     # @param workflow_id [String] Unique ID for the workflow
     # @param dependencies [Hash] A hash defining job dependencies (e.g., { job_a: [], job_b: [:job_a] })
-    # @param logger [Logger, nil] Optional logger (defaults to STDOUT). Pass `nil` to disable logging.
-    def initialize(workflow_id, dependencies, logger: Logger.new($stdout))
+    def initialize(workflow_id, dependencies)
       @workflow_id = workflow_id
       @dependencies = dependencies
-      @logger = logger
-      @dependencies_store = Kiqchestra.config.dependencies_store
-      @progress_store = Kiqchestra.config.progress_store
+      @logger = Logger.new($stdout)
 
       validate_dependencies
       save_dependencies dependencies
@@ -39,7 +36,7 @@ module Kiqchestra
         end
       end
 
-      check_workflow_completion
+      conclude_workflow if workflow_complete?
     end
 
     # Handles the completion of a job and triggers the next jobs if dependencies are met.
@@ -117,7 +114,7 @@ module Kiqchestra
     # @param [Hash] dependencies A hash where keys are task names and values are arrays of dependencies.
     # @example save_dependencies(job1: [:job2, :job3], job2: [])
     def save_dependencies(dependencies)
-      @dependencies_store.write_dependencies @workflow_id, dependencies
+      Kiqchestra.config.store.write_dependencies @workflow_id, dependencies
     end
 
     # Enqueues a Sidekiq job for execution and saves the job's status as "in_progress".
@@ -144,22 +141,20 @@ module Kiqchestra
     def update_progress(job, status)
       progress = read_progress
       progress[job] = status
-      @progress_store.write_progress @workflow_id, progress
+      Kiqchestra.config.store.write_progress @workflow_id, progress
     end
 
     # Reads the current workflow progress from Redis.
     #
     # @return [Hash] The current progress of the workflow
     def read_progress
-      @progress_store.read_progress @workflow_id
+      Kiqchestra.config.store.read_progress @workflow_id
     end
 
     # Checks if the workflow is complete (all jobs are completed) and logs the workflow's end.
-    def check_workflow_completion
+    def workflow_complete?
       progress = read_progress
-      all_completed = @dependencies.keys.all? { |job| progress[job.to_s] == "completed" }
-
-      conclude_workflow if all_completed
+      @dependencies.keys.all? { |job| progress[job.to_s] == "completed" }
     end
 
     # Executes the customizable on-complete procedure for the workflow.

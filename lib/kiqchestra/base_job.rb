@@ -61,7 +61,7 @@ module Kiqchestra
     def dependencies
       return @dependencies if @dependencies.present?
 
-      stored = Kiqchestra.config.dependencies_store.read_dependencies @workflow_id
+      stored = Kiqchestra.config.store.read_dependencies @workflow_id
       @dependencies = stored.transform_keys(&:to_sym).transform_values do |data|
         { deps: data["deps"].map(&:to_sym), args: data["args"] }
       end
