@@ -25,15 +25,7 @@ module Kiqchestra
     def execute
       progress = read_progress
       @dependencies.each do |job, job_data|
-        # Skip jobs already marked as completed or in_progress
-        next if %w[completed in_progress].include?(progress[job.to_s])
-
-        # Run jobs without dependencies and jobs whose dependencies are all completed
-        deps = job_data[:deps]
-        if deps.empty? || deps.all? { |dep| progress[dep.to_s] == "completed" }
-          args = job_data[:args] || []
-          enqueue_job job, args
-        end
+        process_job job, job_data, progress
       end
 
       conclude_workflow if workflow_complete?
@@ -115,6 +107,38 @@ module Kiqchestra
     # @example save_dependencies(job1: [:job2, :job3], job2: [])
     def save_dependencies(dependencies)
       Kiqchestra.config.store.write_dependencies @workflow_id, dependencies
+    end
+
+    # Processes a single job during workflow execution.
+    #
+    # @param job [String] The job identifier
+    # @param job_data [Hash] Metadata for the job (dependencies and arguments)
+    # @param progress [Hash] The current workflow progress
+    def process_job(job, job_data, progress)
+      return if job_already_processed? job, progress
+
+      return unless ready_to_execute? job_data[:deps], progress
+
+      args = job_data[:args] || []
+      enqueue_job job, args
+    end
+
+    # Checks if a job is already processed (completed or in_progress).
+    #
+    # @param job [String] The job identifier
+    # @param progress [Hash] The current workflow progress
+    # @return [Boolean] True if the job is completed or in progress
+    def job_already_processed?(job, progress)
+      %w[completed in_progress].include? progress[job.to_s]
+    end
+
+    # Checks if a job is ready for execution (no dependencies or all dependencies completed).
+    #
+    # @param deps [Array<Symbol, String>] Dependencies for the job
+    # @param progress [Hash] The current workflow progress
+    # @return [Boolean] True if the job is ready to execute
+    def ready_to_execute?(deps, progress)
+      deps.empty? || deps.all? { |dep| progress[dep.to_s] == "completed" }
     end
 
     # Enqueues a Sidekiq job for execution and saves the job's status as "in_progress".
