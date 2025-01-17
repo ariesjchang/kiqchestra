@@ -22,14 +22,13 @@ module Kiqchestra
       @workflow_id = workflow_id
       @args = args
 
-      log_info "Starting job #{job_name} in workflow #{@workflow_id}"
+      log_info "Starting job #{job_name} in workflow #{@workflow_id} with args: #{@args.inspect}"
 
       begin
         # Delegate the actual job work to the subclass's perform method
-        perform_job *@args
+        perform_job(*@args)
 
-        # Call on_complete callback when the job is finished
-        on_complete
+        workflow.handle_completed_job job_name
       rescue StandardError => e
         log_error "#{job_name} failed: #{e.message}"
 
@@ -48,16 +47,9 @@ module Kiqchestra
 
     private
 
-    # Callback method invoked when the job completes.
-    # It updates job progress and triggers the next jobs.
-    def on_complete
-      workflow.job_completed job_name
-      log_info "#{job_name} completed for workflow #{@workflow_id}"
-    end
-
     # Fetch the workflow instance lazily, using pre-fetched dependencies.
     def workflow
-      @workflow ||= Workflow.new @workflow_id, fetch_dependencies
+      @workflow ||= Workflow.new @workflow_id, dependencies
     end
 
     # Extract job name from the class
@@ -65,9 +57,14 @@ module Kiqchestra
       self.class.name.demodulize.underscore.to_s
     end
 
-    # Fetch the job's dependencies and cache them
-    def fetch_dependencies
-      @fetch_dependencies ||= Kiqchestra.config.dependencies_store.read_dependencies @workflow_id
+    # Fetch the cached dependencies
+    def dependencies
+      return @dependencies if @dependencies.present?
+
+      stored = Kiqchestra.config.dependencies_store.read_dependencies @workflow_id
+      @dependencies = stored.transform_keys(&:to_sym).transform_values do |data|
+        { deps: data["deps"].map(&:to_sym), args: data["args"] }
+      end
     end
 
     # Returns the key for storing workflow dependencies in Redis.

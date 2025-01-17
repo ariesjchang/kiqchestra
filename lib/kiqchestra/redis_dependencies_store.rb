@@ -20,16 +20,16 @@ module Kiqchestra
   #   dependencies = store.read_dependencies('workflow_123')
   class RedisDependenciesStore < DependenciesStore
     # Reads the dependencies for a specific workflow from Redis.
-    # 
+    #
     # @param workflow_id [String] The workflow ID to retrieve dependencies for.
     # @return [Hash] The dependencies of the workflow.
     def read_dependencies(workflow_id)
       raw_data = Kiqchestra::RedisClient.client.get workflow_dependencies_key(workflow_id)
-      JSON.parse(raw_data || '{}')
+      JSON.parse(raw_data || "{}")
     end
 
     # Writes the dependencies data for a specific workflow to Redis.
-    # 
+    #
     # @param workflow_id [String] The workflow ID to store dependencies for.
     # @param dependencies [Hash] The dependencies data to store.
     def write_dependencies(workflow_id, dependencies)

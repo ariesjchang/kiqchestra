@@ -21,16 +21,16 @@ module Kiqchestra
   #   progress = store.read_progress('workflow_123')
   class RedisProgressStore < ProgressStore
     # Reads the progress for a specific workflow from Redis.
-    # 
+    #
     # @param workflow_id [String] The workflow ID to retrieve progress for.
     # @return [Hash] The current progress of the workflow.
     def read_progress(workflow_id)
       raw_data = Kiqchestra::RedisClient.client.get workflow_progress_key(workflow_id)
-      JSON.parse(raw_data || '{}')
+      JSON.parse(raw_data || "{}")
     end
 
     # Writes the progress data for a specific workflow to Redis.
-    # 
+    #
     # @param workflow_id [String] The workflow ID to store progress for.
     # @param progress [Hash] The progress data to store.
     def write_progress(workflow_id, progress)

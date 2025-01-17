@@ -27,41 +27,79 @@ module Kiqchestra
     # Starts the workflow execution.
     def execute
       progress = read_progress
-      has_started_job = false
-
-      @dependencies.each do |job, deps|
+      @dependencies.each do |job, job_data|
         # Skip jobs already marked as completed or in_progress
-        next if (progress[job.to_s] == "completed" || progress[job.to_s] == "in_progress")
+        next if %w[completed in_progress].include?(progress[job.to_s])
 
         # Run jobs without dependencies and jobs whose dependencies are all completed
-        if deps.empty? || deps.all? { |dep| progress[dep] == "completed" }
-          has_started_job = true
-          enqueue_job job
+        deps = job_data[:deps]
+        if deps.empty? || deps.all? { |dep| progress[dep.to_s] == "completed" }
+          args = job_data[:args] || []
+          enqueue_job job, args
         end
       end
 
-      conclude_workflow unless has_started_job
+      check_workflow_completion
     end
 
     # Handles the completion of a job and triggers the next jobs if dependencies are met.
     #
     # @param job [String] The completed job name (ex. "example_job")
-    def job_completed(job)
+    def handle_completed_job(job)
       update_progress job, "completed"
+      log_info "#{job} completed for workflow #{@workflow_id}"
 
-      trigger_next_jobs job
-      check_workflow_completion
+      execute
     end
 
     private
 
-    # Validates the structure of the dependencies hash.
+    # Validates the dependencies structure for a workflow.
+    # Ensures that all job metadata, dependencies, and arguments conform to the expected format.
     def validate_dependencies
+      # Ensure the root structure is a hash
       raise ArgumentError, "Dependencies must be a hash" unless @dependencies.is_a?(Hash)
 
-      @dependencies.each do |job, deps|
-        raise ArgumentError, "Dependencies for #{job} must be an array" unless deps.is_a?(Array)
+      # Validate each job's metadata
+      @dependencies.each do |job, data|
+        validate_metadata job, data
       end
+    end
+
+    # Validates the metadata for a specific job.
+    # Ensures that the metadata is a hash and its components (deps and args) are correctly structured.
+    #
+    # @param job [Symbol, String] The job identifier
+    # @param data [Hash] Metadata for the job (includes deps and args)
+    def validate_metadata(job, data)
+      # Check if the metadata is a hash
+      raise ArgumentError, "Metadata for #{job} must be a hash" unless data.is_a?(Hash)
+
+      # Validate dependencies and arguments separately
+      validate_deps job, data[:deps]
+      validate_args job, data[:args]
+    end
+
+    # Validates the dependencies (`deps`) for a specific job.
+    # Ensures that dependencies are an array of symbols or strings.
+    #
+    # @param job [Symbol, String] The job identifier
+    # @param deps [Array<Symbol, String>] Dependencies for the job
+    def validate_deps(job, deps)
+      return if deps.is_a?(Array) && deps.all? { |dep| dep.is_a?(String) || dep.is_a?(Symbol) }
+
+      raise ArgumentError, "Dependencies for #{job} must be an array of strings or symbols"
+    end
+
+    # Validates the arguments (`args`) for a specific job.
+    # Ensures that arguments are either an array or nil.
+    #
+    # @param job [Symbol, String] The job identifier
+    # @param args [Array, nil] Arguments for the job
+    def validate_args(job, args)
+      return if args.nil? || args.is_a?(Array)
+
+      raise ArgumentError, "Arguments for #{job} must be an array or nil"
     end
 
     # Returns the Redis key for storing workflow dependencies.
@@ -75,7 +113,7 @@ module Kiqchestra
     end
 
     # Saves the task dependencies using the configured dependencies store.
-    # 
+    #
     # @param [Hash] dependencies A hash where keys are task names and values are arrays of dependencies.
     # @example save_dependencies(job1: [:job2, :job3], job2: [])
     def save_dependencies(dependencies)
@@ -83,11 +121,12 @@ module Kiqchestra
     end
 
     # Enqueues a Sidekiq job for execution and saves the job's status as "in_progress".
-    # 
-    # @param job [String] job name in snake_case
-    def enqueue_job(job)
-      job_class = Object.const_get "#{job.to_s.camelize}"
-      job_class.perform_async @workflow_id
+    #
+    # @param job [String] Job name in snake_case.
+    # @param args [Array] Arguments to pass to the job's perform method (default: empty array).
+    def enqueue_job(job, args = [])
+      job_class = Object.const_get job.to_s.camelize.to_s
+      job_class.perform_async @workflow_id, *args
       update_progress job, "in_progress"
     rescue NameError
       raise "Class for job '#{job}' not defined"
@@ -118,28 +157,14 @@ module Kiqchestra
     # Checks if the workflow is complete (all jobs are completed) and logs the workflow's end.
     def check_workflow_completion
       progress = read_progress
-      all_completed = @dependencies.keys.all? { |job| progress[job] == "completed" }
+      all_completed = @dependencies.keys.all? { |job| progress[job.to_s] == "completed" }
 
       conclude_workflow if all_completed
     end
 
-    # Run last procedures for the completed workflow
+    # Executes the customizable on-complete procedure for the workflow.
     def conclude_workflow
       log_info "Workflow #{@workflow_id} has completed successfully."
-    end
-
-    # Triggers the next jobs whose dependencies are now satisfied.
-    #
-    # @param completed_job [String] The job that was just completed
-    def trigger_next_jobs(completed_job)
-      progress = read_progress
-      @dependencies.each do |job, deps|
-        next if progress[job] == "completed" # Skip already completed jobs
-
-        if deps.include?(completed_job) && deps.all? { |dep| progress[dep] == "completed" }
-          enqueue_job job
-        end
-      end
     end
   end
 end
