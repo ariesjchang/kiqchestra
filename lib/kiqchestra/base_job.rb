@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "sidekiq"
+require "kiqchestra/workflow"
 
 module Kiqchestra
   # BaseJob provides a standard interface for all workflow jobs.
@@ -26,10 +27,10 @@ module Kiqchestra
 
       begin
         # Delegate the actual job work to the subclass's perform method
-        perform_job(*@args)
+        perform_job *@args
 
         workflow.handle_completed_job job_name
-      rescue StandardError => e
+      rescue => e
         log_error "#{job_name} failed: #{e.message}"
 
         # Re-raise to let Sidekiq handle retries
@@ -53,13 +54,15 @@ module Kiqchestra
     end
 
     # Extract job name from the class
+    # .split('::').last : equivalent to Rails's demodulize
+    # .gsub(/([a-z])([A-Z])/, '\1_\2').downcase : equivalent to Rails's undercase
     def job_name
-      self.class.name.demodulize.underscore.to_s
+      self.class.name.split('::').last.gsub(/([a-z])([A-Z])/, '\1_\2').downcase.to_s
     end
 
     # Fetch the cached dependencies
     def dependencies
-      return @dependencies if @dependencies.present?
+      return @dependencies if @dependencies&.present?
 
       stored = Kiqchestra.config.store.read_dependencies @workflow_id
       @dependencies = stored.transform_keys(&:to_sym).transform_values do |data|
@@ -79,7 +82,7 @@ module Kiqchestra
 
     # Logs an error-level message
     def log_error(message)
-      Sidekiq.logger.error "kiqchestra #{message}"
+      Sidekiq.logger.error "kiqchestra: #{message}"
     end
   end
 end
