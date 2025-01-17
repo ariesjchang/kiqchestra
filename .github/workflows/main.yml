@@ -13,6 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     name: Build Gem
 
+    services:
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+
     steps:
     - uses: actions/checkout@v4
     - name: Set up Ruby
