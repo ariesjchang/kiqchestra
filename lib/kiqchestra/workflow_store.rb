@@ -14,23 +14,23 @@ module Kiqchestra
       # No initialization logic here
     end
 
-    # Reads the dependencies for a workflow.
+    # Reads the workflow data for a workflow.
     #
-    # @return [Hash] A hash representing the dependencies for the workflow, where each
-    #                key is a task ID and the value is an array of dependent task IDs.
+    # @return [Hash] A hash representing the metadata for the workflow, where each key
+    #                is a task ID and the value is a hash with keys `:deps` and `:args`.
     # @raise [NotImplementedError] This method must be implemented by a subclass.
-    def read_dependencies
-      raise NotImplementedError, "Subclasses must implement the read_dependencies method"
+    def read_metadata
+      raise NotImplementedError, "Subclasses must implement the read_workflow_data method"
     end
 
-    # Writes the dependencies for a workflow to the store.
+    # Writes the workflow data for a workflow to the store.
     #
-    # @param dependencies [Hash] A hash representing the dependencies to store, where each key
-    #                            is a task ID and the value is an array of dependent task IDs.
+    # @param workflow_data [Hash] A hash representing the workflow data to store, where each key
+    #                             is a task ID and the value is a hash with keys `:deps` and `:args`.
     # @example { a_job: { deps: [], args: [1, 2, 3] }, b_job: { deps: [:a_job], args: nil } }
     # @raise [NotImplementedError] This method must be implemented by a subclass.
-    def write_dependencies(_dependencies)
-      raise NotImplementedError, "Subclasses must implement the write_dependencies method"
+    def write_metadata(_metadata)
+      raise NotImplementedError, "Subclasses must implement the write_workflow_data method"
     end
 
     # Reads the progress of a workflow.

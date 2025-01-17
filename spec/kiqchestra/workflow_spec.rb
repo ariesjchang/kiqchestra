@@ -13,7 +13,7 @@ RSpec.describe Kiqchestra::Workflow do
   let(:b_job_args) { ["arg1"] }
   let(:c_job_args) { [] }
   let(:d_job_args) { ["arg2", 3] }
-  let(:dependencies) do
+  let(:metadata) do
     {
       a_job: { deps: [], args: a_job_args },
       b_job: { deps: [:a_job], args: b_job_args },
@@ -21,7 +21,7 @@ RSpec.describe Kiqchestra::Workflow do
       d_job: { deps: %i[b_job c_job], args: d_job_args }
     }
   end
-  let(:workflow) { described_class.new(workflow_id, dependencies) }
+  let(:workflow) { described_class.new(workflow_id, metadata) }
 
   let(:job_class_a) do
     Class.new(Kiqchestra::BaseJob) do
@@ -78,25 +78,25 @@ RSpec.describe Kiqchestra::Workflow do
   end
 
   describe "#initialize" do
-    it "validates and stores dependencies" do
+    it "validates and stores metadata" do
       expect { workflow }.not_to raise_error
-      stored_dependencies = store.read_dependencies(workflow_id)
+      stored_metadata = store.read_metadata(workflow_id)
 
-      # Normalize stored dependencies to symbols for comparison
-      normalized_dependencies = stored_dependencies.transform_keys(&:to_sym).transform_values do |value|
+      # Normalize stored metadata to symbols for comparison
+      normalized_metadata = stored_metadata.transform_keys(&:to_sym).transform_values do |value|
         {
           deps: value["deps"].map(&:to_sym),
           args: value["args"]
         }
       end
 
-      expect(normalized_dependencies).to eq(dependencies)
+      expect(normalized_metadata).to eq(metadata)
     end
 
-    it "raises an error for invalid dependencies" do
-      invalid_dependencies = { a_job: "invalid_data" }
+    it "raises an error for invalid metadata" do
+      invalid_metadata = { a_job: "invalid_data" }
       expect do
-        described_class.new(workflow_id, invalid_dependencies)
+        described_class.new(workflow_id, invalid_metadata)
       end.to raise_error(ArgumentError, /Metadata for a_job must be a hash/)
     end
   end

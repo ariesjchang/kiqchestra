@@ -14,29 +14,29 @@ module Kiqchestra
   #
   # Example Usage:
   #   store = Kiqchestra::DefaultWorkflowStore.new
-  #   store.write_dependencies "workflow_123", { a_job: { deps: [], args: [1, 2, 3] } }
-  #   dependencies = store.read_dependencies "workflow_123"
+  #   store.write_metadata "workflow_123", { a_job: { deps: [], args: [1, 2, 3] } }
+  #   metadata = store.read_metadata "workflow_123"
   #   store.write_progress "workflow_123", { a_job: "complete" }
   #   progress = store.read_progress "workflow_123"
   class DefaultWorkflowStore < WorkflowStore
-    # Reads the dependencies for a workflow from Redis.
+    # Reads the metadata for a workflow from Redis.
     #
-    # @param workflow_id [String] The workflow ID to retrieve dependencies for.
-    # @return [Hash] A hash representing the dependencies for the workflow, where each
-    #                key is a task ID and the value is a hash with keys `:deps` and `:args`.
-    def read_dependencies(workflow_id)
-      raw_data = Kiqchestra::RedisClient.client.get dependencies_key(workflow_id)
+    # @param workflow_id [String] The workflow ID to retrieve workflow data for.
+    # @return [Hash] A hash representing the workflow metadata, where each key is
+    #                a task ID and the value is a hash with keys `:deps` and `:args`.
+    def read_metadata(workflow_id)
+      raw_data = Kiqchestra::RedisClient.client.get metadata_key(workflow_id)
       JSON.parse(raw_data || "{}")
     end
 
-    # Writes the dependencies for a workflow to Redis.
+    # Writes the metadata for a workflow to Redis.
     #
     # @param workflow_id [String] The workflow ID to store dependencies for.
-    # @param dependencies [Hash] A hash representing the dependencies to store.
+    # @param metadata [Hash] A hash representing the metadata to store.
     # @example { a_job: { deps: [], args: [1, 2, 3] }, b_job: { deps: [:a_job], args: nil } }
-    def write_dependencies(workflow_id, dependencies)
-      Kiqchestra::RedisClient.client.set dependencies_key(workflow_id),
-                                         dependencies.to_json,
+    def write_metadata(workflow_id, metadata)
+      Kiqchestra::RedisClient.client.set metadata_key(workflow_id),
+                                         metadata.to_json,
                                          ex: 604_800 # Default TTL: 7 days
     end
 
@@ -44,7 +44,7 @@ module Kiqchestra
     #
     # @param workflow_id [String] The workflow ID to retrieve progress for.
     # @return [Hash] A hash representing the progress of the workflow, where each
-    #                key is a task ID and the value indicates the completion status.
+    #                key is a task ID and the value indicates the status.
     def read_progress(workflow_id)
       raw_data = Kiqchestra::RedisClient.client.get progress_key(workflow_id)
       JSON.parse(raw_data || "{}")
@@ -63,12 +63,12 @@ module Kiqchestra
 
     private
 
-    # Generates the Redis key for storing dependencies of a specific workflow.
+    # Generates the Redis key for storing metadata of a specific workflow.
     #
     # @param workflow_id [String] The workflow ID.
-    # @return [String] The Redis key for dependencies.
-    def dependencies_key(workflow_id)
-      "workflow:#{workflow_id}:dependencies"
+    # @return [String] The Redis key for metadata.
+    def metadata_key(workflow_id)
+      "workflow:#{workflow_id}:metadata"
     end
 
     # Generates the Redis key for storing progress of a specific workflow.

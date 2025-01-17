@@ -8,24 +8,30 @@ module Kiqchestra
   # Sidekiq-based job workflows. It manages task dependencies
   # and tracks their completion status.
   class Workflow
-    # Initializes the workflow with dependencies and optional logger.
+    # Initializes the workflow with workflow id and data.
     #
     # @param workflow_id [String] Unique ID for the workflow
-    # @param dependencies [Hash] A hash defining job dependencies (e.g., { job_a: [], job_b: [:job_a] })
-    def initialize(workflow_id, dependencies)
+    # @param metadata [Hash] Hash defining jobs' dependencies and arguments
+    # @example {
+    #   a_job: { deps: [], args: a_job_args },
+    #   b_job: { deps: [:a_job], args: b_job_args },
+    #   c_job: { deps: [:a_job], args: c_job_args },
+    #   d_job: { deps: %i[b_job c_job], args: d_job_args }
+    # }
+    def initialize(workflow_id, metadata)
       @workflow_id = workflow_id
-      @dependencies = dependencies
+      @metadata = metadata
       @logger = Logger.new($stdout)
 
-      validate_dependencies
-      save_dependencies dependencies
+      validate_metadata
+      cache_metadata metadata
     end
 
     # Starts the workflow execution.
     def execute
       progress = read_progress
-      @dependencies.each do |job, job_data|
-        process_job job, job_data, progress
+      @metadata.each do |job, job_data|
+        process_job job, job_data
       end
 
       conclude_workflow if workflow_complete?
@@ -43,15 +49,15 @@ module Kiqchestra
 
     private
 
-    # Validates the dependencies structure for a workflow.
+    # Validates the workflow data structure for a workflow.
     # Ensures that all job metadata, dependencies, and arguments conform to the expected format.
-    def validate_dependencies
+    def validate_metadata
       # Ensure the root structure is a hash
-      raise ArgumentError, "Dependencies must be a hash" unless @dependencies.is_a?(Hash)
+      raise ArgumentError, "Metadata must be a hash" unless @metadata.is_a?(Hash)
 
       # Validate each job's metadata
-      @dependencies.each do |job, data|
-        validate_metadata job, data
+      @metadata.each do |job, data|
+        validate_job_metadata job, data
       end
     end
 
@@ -60,7 +66,7 @@ module Kiqchestra
     #
     # @param job [Symbol, String] The job identifier
     # @param data [Hash] Metadata for the job (includes deps and args)
-    def validate_metadata(job, data)
+    def validate_job_metadata(job, data)
       # Check if the metadata is a hash
       raise ArgumentError, "Metadata for #{job} must be a hash" unless data.is_a?(Hash)
 
@@ -91,53 +97,39 @@ module Kiqchestra
       raise ArgumentError, "Arguments for #{job} must be an array or nil"
     end
 
-    # Returns the Redis key for storing workflow dependencies.
-    def workflow_dependencies_key
-      "workflow:#{@workflow_id}:dependencies"
-    end
-
-    # Returns the Redis key for storing workflow progress.
-    def workflow_progress_key
-      "workflow:#{@workflow_id}:progress"
-    end
-
-    # Saves the task dependencies using the configured dependencies store.
-    #
-    # @param [Hash] dependencies A hash where keys are task names and values are arrays of dependencies.
-    # @example save_dependencies(job1: [:job2, :job3], job2: [])
-    def save_dependencies(dependencies)
-      Kiqchestra.config.store.write_dependencies @workflow_id, dependencies
+    # Caches the workflow data using the configured workflow store.
+    def cache_metadata(metadata)
+      Kiqchestra.config.store.write_metadata @workflow_id, metadata
     end
 
     # Processes a single job during workflow execution.
     #
     # @param job [String] The job identifier
-    # @param job_data [Hash] Metadata for the job (dependencies and arguments)
-    # @param progress [Hash] The current workflow progress
-    def process_job(job, job_data, progress)
-      return if job_already_processed? job, progress
+    # @param job_metadata [Hash] Metadata for the job (dependencies and arguments)
+    def process_job(job, job_metadata)
+      return if job_already_processed? job
 
-      return unless ready_to_execute? job_data[:deps], progress
+      return unless ready_to_execute? job_metadata[:deps]
 
-      args = job_data[:args] || []
+      args = job_metadata[:args] || []
       enqueue_job job, args
     end
 
     # Checks if a job is already processed (completed or in_progress).
     #
     # @param job [String] The job identifier
-    # @param progress [Hash] The current workflow progress
     # @return [Boolean] True if the job is completed or in progress
-    def job_already_processed?(job, progress)
+    def job_already_processed?(job)
+      progress = read_progress
       %w[complete in_progress].include? progress[job.to_s]
     end
 
     # Checks if a job is ready for execution (no dependencies or all dependencies completed).
     #
     # @param deps [Array<Symbol, String>] Dependencies for the job
-    # @param progress [Hash] The current workflow progress
     # @return [Boolean] True if the job is ready to execute
-    def ready_to_execute?(deps, progress)
+    def ready_to_execute?(deps)
+      progress = read_progress
       deps.empty? || deps.all? { |dep| progress[dep.to_s] == "complete" }
     end
 
@@ -146,10 +138,12 @@ module Kiqchestra
     # @param job [String] Job name in snake_case.
     # @param args [Array] Arguments to pass to the job's perform method (default: empty array).
     def enqueue_job(job, args = [])
+      return if job_already_processed? job
+      update_progress job, "in_progress"
+
       job_class_name = job.to_s.split("_").map(&:capitalize).join
       job_class = Object.const_get(job_class_name)
       job_class.perform_async @workflow_id, *args
-      update_progress job, "in_progress"
     rescue NameError
       raise "Class for job '#{job}' not defined"
     end
@@ -179,7 +173,7 @@ module Kiqchestra
     # Checks if the workflow is complete (all jobs are completed) and logs the workflow's end.
     def workflow_complete?
       progress = read_progress
-      @dependencies.keys.all? { |job| progress[job.to_s] == "complete" }
+      @metadata.keys.all? { |job| progress[job.to_s] == "complete" }
     end
 
     # Executes the customizable on-complete procedure for the workflow.

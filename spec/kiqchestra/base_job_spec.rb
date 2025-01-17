@@ -15,6 +15,7 @@ RSpec.describe Kiqchestra::BaseJob, type: :worker do
 
   before do
     Object.const_set(:TestJob, job_class)
+
     allow(Sidekiq.logger).to receive(:info)
     allow(Sidekiq.logger).to receive(:error)
   end
