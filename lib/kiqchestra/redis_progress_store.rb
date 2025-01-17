@@ -17,8 +17,8 @@ module Kiqchestra
   #
   # Example Usage:
   #   store = Kiqchestra::RedisProgressStore.new
-  #   store.write_progress('workflow_123', { job1: "complete" })
-  #   progress = store.read_progress('workflow_123')
+  #   store.write_progress 'workflow_123', { job1: "complete" }
+  #   progress = store.read_progress 'workflow_123'
   class RedisProgressStore < ProgressStore
     # Reads the progress for a specific workflow from Redis.
     #
@@ -30,11 +30,14 @@ module Kiqchestra
     end
 
     # Writes the progress data for a specific workflow to Redis.
+    # By default, keys are set with a TTL of 7 days.
     #
     # @param workflow_id [String] The workflow ID to store progress for.
     # @param progress [Hash] The progress data to store.
     def write_progress(workflow_id, progress)
-      Kiqchestra::RedisClient.client.set workflow_progress_key(workflow_id), progress.to_json
+      Kiqchestra::RedisClient.client.set workflow_progress_key(workflow_id),
+                                         progress.to_json,
+                                         ex: 604_800 # 7 days
     end
 
     private

@@ -3,9 +3,7 @@
 require "redis"
 
 module Kiqchestra
-  # Provides a Redis-based storage solution for workflow dependencies and progress.
-  # This client abstracts common read and write operations to Redis,
-  # enabling Kiqchestra workflows to manage their state effectively.
+  # Redis client used for caching workflow dependencies and progress.
   #
   # Dependencies:
   # - `redis` gem: Ensure this is included in your Gemfile.

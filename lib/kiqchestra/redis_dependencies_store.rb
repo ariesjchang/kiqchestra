@@ -8,16 +8,12 @@ module Kiqchestra
   # The RedisDependenciesStore class is an implementation of the
   # DependenciesStore interface. It stores task dependencies in a Redis key.
   #
-  # This is used to store dependencies for a specific workflow in Redis.
-  #
-  # Methods:
-  # - `read_dependencies(workflow_id)`: Reads task dependencies for a specific workflow.
-  # - `write_dependencies(workflow_id, dependencies)`: Caches the task dependencies for a specific workflow.
-  #
   # Example Usage:
   #   store = Kiqchestra::RedisDependenciesStore.new
-  #   store.write_dependencies('workflow_123', { job1: [], job2: [:job1] })
-  #   dependencies = store.read_dependencies('workflow_123')
+  #   store.write_dependencies 'workflow_123',
+  #                            { a_job: { deps: [], args: [1, 2, 3] },
+  #                              b_job: { deps: [:a_worker], args: nil } }
+  #   dependencies = store.read_dependencies 'workflow_123'
   class RedisDependenciesStore < DependenciesStore
     # Reads the dependencies for a specific workflow from Redis.
     #
@@ -29,11 +25,14 @@ module Kiqchestra
     end
 
     # Writes the dependencies data for a specific workflow to Redis.
+    # By default, keys are set with a TTL of 7 days.
     #
     # @param workflow_id [String] The workflow ID to store dependencies for.
     # @param dependencies [Hash] The dependencies data to store.
     def write_dependencies(workflow_id, dependencies)
-      Kiqchestra::RedisClient.client.set workflow_dependencies_key(workflow_id), dependencies.to_json
+      Kiqchestra::RedisClient.client.set workflow_dependencies_key(workflow_id),
+                                         dependencies.to_json,
+                                         ex: 604_800 # 7 days
     end
 
     private

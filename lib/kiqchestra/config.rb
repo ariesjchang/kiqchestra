@@ -21,11 +21,11 @@ module Kiqchestra
   #   Kiqchestra.configure do |config|
   #     config.dependencies_store = MyCustomDependenciesStore.new
   #     config.progress_store = MyCustomProgressStore.new
+  #     config.redis_cache_duration = 604800
   #   end
   class Config
     attr_accessor :dependencies_store, :progress_store
 
-    # Save progress temporarily as a file by default
     def initialize
       @dependencies_store = RedisDependenciesStore.new
       @progress_store = RedisProgressStore.new
