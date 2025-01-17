@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    kiqchestra (0.1.0)
+    kiqchestra (1.0.0)
       sidekiq (~> 6.5.5)
 
 GEM
