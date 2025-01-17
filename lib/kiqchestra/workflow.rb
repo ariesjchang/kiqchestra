@@ -35,7 +35,7 @@ module Kiqchestra
     #
     # @param job [String] The completed job name (ex. "example_job")
     def handle_completed_job(job)
-      update_progress job, "completed"
+      update_progress job, "complete"
       log_info "#{job} completed for workflow #{@workflow_id}"
 
       execute
@@ -129,7 +129,7 @@ module Kiqchestra
     # @param progress [Hash] The current workflow progress
     # @return [Boolean] True if the job is completed or in progress
     def job_already_processed?(job, progress)
-      %w[completed in_progress].include? progress[job.to_s]
+      %w[complete in_progress].include? progress[job.to_s]
     end
 
     # Checks if a job is ready for execution (no dependencies or all dependencies completed).
@@ -138,7 +138,7 @@ module Kiqchestra
     # @param progress [Hash] The current workflow progress
     # @return [Boolean] True if the job is ready to execute
     def ready_to_execute?(deps, progress)
-      deps.empty? || deps.all? { |dep| progress[dep.to_s] == "completed" }
+      deps.empty? || deps.all? { |dep| progress[dep.to_s] == "complete" }
     end
 
     # Enqueues a Sidekiq job for execution and saves the job's status as "in_progress".
@@ -146,7 +146,8 @@ module Kiqchestra
     # @param job [String] Job name in snake_case.
     # @param args [Array] Arguments to pass to the job's perform method (default: empty array).
     def enqueue_job(job, args = [])
-      job_class = Object.const_get job.to_s.camelize.to_s
+      job_class_name = job.to_s.split("_").map(&:capitalize).join
+      job_class = Object.const_get(job_class_name)
       job_class.perform_async @workflow_id, *args
       update_progress job, "in_progress"
     rescue NameError
@@ -178,7 +179,7 @@ module Kiqchestra
     # Checks if the workflow is complete (all jobs are completed) and logs the workflow's end.
     def workflow_complete?
       progress = read_progress
-      @dependencies.keys.all? { |job| progress[job.to_s] == "completed" }
+      @dependencies.keys.all? { |job| progress[job.to_s] == "complete" }
     end
 
     # Executes the customizable on-complete procedure for the workflow.
