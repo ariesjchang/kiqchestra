@@ -1,39 +1,97 @@
-# Kiqchestra
+# Kiqchestra - Sidekiq Job Orchestration Framework
 
-TODO: Delete this and the text below, and describe your gem
+Kiqchestra is a lightweight Sidekiq-based job orchestration framework that allows you to manage complex job workflows with dependencies between tasks. Unlike traditional background job frameworks, Kiqchestra simplifies job orchestration by allowing jobs to be executed based on the completion of other jobs, ensuring smooth and controlled execution of task sequences.
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/kiqchestra`. To experiment with that code, run `bin/console` for an interactive prompt.
+## Features
+
+- **Job Dependencies**: Easily manage dependency relationship between jobs and ensure they run in the correct order.
+- **Progress Tracking**: Track the progress of each job in a workflow. Customizable for your need.
 
 ## Installation
 
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
+Add the following line to your `Gemfile`:
 
-Install the gem and add to the application's Gemfile by executing:
+```ruby
+gem 'kiqchestra'
+```
 
-    $ bundle add UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+Run `bundle install` to install the gem.
+Alternatively, you can install the gem manually:
 
-If bundler is not being used to manage dependencies, install the gem by executing:
+```bash
+gem install kiqchestra
+```
 
-    $ gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+## Configuration
+
+By default, Kiqchestra uses a Redis-backed store (`DefaultWorkflowStore`) that caches workflow metadata and progress for 7 days, but you can provide your own custom store if needed. To use `DefaultWorkflowStore`, make sure to have `ENV[REDIS_URL]` - if not defined, `redis://localhost:6379/0` will be used (see [Kiqchestra::RedisClient](https://github.com/ariesjchang/kiqchestra/blob/main/lib/kiqchestra/redis_client.rb)).
+
+### Customizing WorkflowStore
+
+You can create your own store by subclassing Kiqchestra::WorkflowStore and implementing the required methods (`read_metadata`, `write_metadata`, `read_progress`, `write_progress`).
+
+For example:
+
+```ruby
+class MyCustomWorkflowStore < Kiqchestra::WorkflowStore
+  def read_metadata(workflow_id)
+    # Your implementation
+  end
+
+  def write_metadata(workflow_id, metadata)
+    # Your implementation
+  end
+
+  def read_progress(workflow_id)
+    # Your implementation
+  end
+
+  def write_progress(workflow_id, progress)
+    # Your implementation
+  end
+end
+
+Kiqchestra.configure do |config|
+  config.store = MyCustomWorkflowStore.new
+end
+```
 
 ## Usage
 
-TODO: Write usage instructions here
+### Defining a Workflow
 
-## Development
+A workflow is defined by a unique workflow_id and a set of metadata that describes the jobs and their dependencies. The metadata for each job should include:
+- `deps`: An array of jobs that must complete before the current job can start.
+- `args`: Arguments to be passed to the job.
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+Here's an example of a workflow metadata definition:
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+```ruby
+metadata = {
+  a_job: { deps: [], args: [1, 2, 3] },
+  b_job: { deps: [:a_job], args: [4, 5] },
+  c_job: { deps: [:a_job], args: nil },
+  d_job: { deps: [:b_job, :c_job], args: [6] }
+}
+```
+
+Make sure each job name corresponds to an actual existing class that is a subclass of `Kiqchestra::BaseJob` (ex. `a_job` would be `AJob`).
+You can create and run a workflow by:
+
+```ruby
+workflow = Kiqchestra::Workflow.new('workflow_123', metadata)
+workflow.execute
+```
 
 ## Contributing
+Contributions to Kiqchestra are welcome! To contribute:
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/kiqchestra. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/[USERNAME]/kiqchestra/blob/main/CODE_OF_CONDUCT.md).
+1. Fork the repository.
+2. Create a new branch.
+3. Make your changes.
+4. Run tests.
+5. Open a pull request.
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
-
-## Code of Conduct
-
-Everyone interacting in the Kiqchestra project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/kiqchestra/blob/main/CODE_OF_CONDUCT.md).
+Kiqchestra is released under the MIT License.
